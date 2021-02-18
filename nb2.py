@@ -22,7 +22,7 @@ class NB_Classifier:
 		for a_class in self.classes:
 			separated_dataset = self.dat[self.dat.iloc[:,-1]==a_class]
 			if a_class not in self.summary:
-				self.summary[a_class] = list()
+				self.summary[a_class] = dict()
 			
 			for column in range(separated_dataset.shape[1]-1):
 				self.summary[a_class].append(separated_dataset[column].value_counts(normalize=True).to_dict())
