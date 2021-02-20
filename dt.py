@@ -39,7 +39,7 @@ class DT_Classifier:
 	def __init__(self):
 		self.root = Node()
 	
-	def read_dataset(self, data_path='kr-vs-kp.data'):
+	def read_dataset(self, data_path='car.data'):
 		self.dat = pd.read_csv(data_path, header=None).astype(str)
 	
 	def gini_calc(self, D, attr):
@@ -81,7 +81,11 @@ class DT_Classifier:
 	def Decision_Tree(self, D):
 
 		node = Node()
-		
+		# pruning wrt majority vote
+		if D.shape[1]<self.dat.shape[1]*.1:
+			node.set_leaf(D.iloc[:,-1].value_counts().index[0])
+			return node
+			
 		if len(D.iloc[:,-1].unique()) == 1:
 			node.set_leaf(D.iloc[:,-1].unique()[0])
 			return node
@@ -107,6 +111,16 @@ class DT_Classifier:
 			print(partition_right)
 		
 		return node
+	def predict(self, data_tuple, node):
+		if node is not None:
+			if node.leaf == True:
+				return node.class_
+			if data_tuple[node.index] == node.left_class:
+				return self.predict(data_tuple, node.left)
+			else:
+				return self.predict(data_tuple, node.right)
+		else:
+			return 'unresolved'
 
 classifier = DT_Classifier()
 
@@ -117,6 +131,13 @@ n = classifier.Decision_Tree_Initiation()
 n.pprint()
 
 
+def f(n):
+	if n.leaf == False:
+		f(n.left)
+		f(n.right)
+	else:
+		print(n.class_)
+f(n)
 
-
+print(classifier.predict(['vhigh','low','5more','more','med','high'], n))
 
