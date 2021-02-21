@@ -1,4 +1,6 @@
 import pandas as pd
+from sklearn.metrics import confusion_matrix
+import numpy as np
 
 class Node:
 	def __init__(self):
@@ -39,8 +41,10 @@ class DT_Classifier:
 	def __init__(self):
 		self.root = Node()
 	
-	def read_dataset(self, data_path='car.data'):
-		self.dat = pd.read_csv(data_path, header=None).astype(str)
+	def read_dataset(self, data_path='nursery.data'):
+		self.dat = pd.read_csv(data_path, header=None).astype(str).sample(frac=1).reset_index(drop=True)
+		self.train = self.dat.head(int(self.dat.shape[0]*.8))
+		self.test = self.dat.tail(self.dat.shape[0]-int(self.dat.shape[0]*.2))
 	
 	def gini_calc(self, D, attr):
 		#print(D)
@@ -74,7 +78,7 @@ class DT_Classifier:
 				
 		return (smallest_gini_index, D[smallest_gini_index].unique()[0])
 	def Decision_Tree_Initiation(self):
-		D = self.dat
+		D = self.train
 		self.root = self.Decision_Tree(D)
 		return self.root
 		
@@ -82,9 +86,9 @@ class DT_Classifier:
 
 		node = Node()
 		# pruning wrt majority vote
-		if D.shape[1]<self.dat.shape[1]*.1:
-			node.set_leaf(D.iloc[:,-1].value_counts().index[0])
-			return node
+		#if D.shape[1]<self.train.shape[1]*.1:
+		#	node.set_leaf(D.iloc[:,-1].value_counts().index[0])
+		#	return node
 			
 		if len(D.iloc[:,-1].unique()) == 1:
 			node.set_leaf(D.iloc[:,-1].unique()[0])
@@ -111,16 +115,36 @@ class DT_Classifier:
 			print(partition_right)
 		
 		return node
-	def predict(self, data_tuple, node):
+	
+	def predict(self, data_tuple):
+		return self.predict_recursion(data_tuple, self.root)
+		
+	def predict_recursion(self, data_tuple, node):
 		if node is not None:
 			if node.leaf == True:
 				return node.class_
 			if data_tuple[node.index] == node.left_class:
-				return self.predict(data_tuple, node.left)
+				return self.predict_recursion(data_tuple, node.left)
 			else:
-				return self.predict(data_tuple, node.right)
+				return self.predict_recursion(data_tuple, node.right)
 		else:
 			return 'unresolved'
+	
+	def calc_accuracy(self):
+		self.predicted = []
+		for index, row in self.test.iloc[:,:-1].iterrows():
+			self.predicted.append(self.predict(row))
+		self.comparison = pd.DataFrame({'predicted' : self.predicted, 'actual' : self.test.iloc[:,-1]})
+		
+		self.comparison['res'] = self.comparison.apply(lambda x: 1 if x['predicted']==x['actual'] else 0, axis=1)
+		print(self.comparison['res'].value_counts(normalize=True)[1])
+
+	def calc_precision_recall(self):
+		print(self.test.iloc[:,-1], self.predicted)
+		self.cm = confusion_matrix(self.test.iloc[:,-1], self.predicted, self.test.iloc[:,-1].unique())
+		self.recall = np.diag(cm) / np.sum(cm, axis = 1)
+		self.precision = np.diag(cm) / np.sum(cm, axis = 0)
+		print(cm, self.test.iloc[:,-1].unique())
 
 classifier = DT_Classifier()
 
@@ -136,8 +160,8 @@ def f(n):
 		f(n.left)
 		f(n.right)
 	else:
-		print(n.class_)
+		pass#print(n.class_)
 f(n)
 
-print(classifier.predict(['vhigh','low','5more','more','med','high'], n))
-
+classifier.calc_accuracy()
+classifier.calc_precision()
