@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.metrics import confusion_matrix
 import numpy as np
 from pprint import pprint
+import argparse
 
 class Node:
 	def __init__(self):
@@ -44,8 +45,15 @@ class DT_Classifier:
 	
 	def read_dataset(self, data_path='nursery.data'):
 		self.dat = pd.read_csv(data_path, header=None).astype(str).sample(frac=1).reset_index(drop=True)
-		self.train = self.dat.head(int(self.dat.shape[0]*.7))
-		self.test = self.dat.tail(self.dat.shape[0]-int(self.dat.shape[0]*.7))
+		self.is_column_contin = []
+		for i in self.dat.columns:
+			if len(self.dat[i].unique()) >= 20:
+				self.dat[i] = pd.to_numeric(self.dat[i])
+				self.is_column_contin.append('t')
+			else:
+				self.is_column_contin.append('f')
+		self.train = self.dat.head(int(self.dat.shape[0]*.8))
+		self.test = self.dat.tail(self.dat.shape[0]-int(self.dat.shape[0]*.8))
 	
 	def gini_calc(self, D, attr):
 		#print(D)
@@ -70,7 +78,7 @@ class DT_Classifier:
 		final_first_entry = ''
 		for i in D.columns[:-1]:
 			D.sort_values(i)
-			if len(D[i].unique())<20:
+			if self.is_column_contin[i]=='f':
 				first_entry = np.sort(D[i].unique())[0]
 				
 				
@@ -104,7 +112,7 @@ class DT_Classifier:
 						smallest_gini_index = i
 						final_first_entry = first_entry
 		D.sort_values(smallest_gini_index)
-		if len(D[smallest_gini_index].unique())>=20:
+		if self.is_column_contin[smallest_gini_index]=='t':
 			first_entry = final_first_entry
 		else:
 			first_entry = np.sort(D[smallest_gini_index].unique())[0]
@@ -142,10 +150,10 @@ class DT_Classifier:
 
 		if partition_left.shape[0] != 0:
 			node.left = self.Decision_Tree(partition_left)
-			print(partition_left)
+			#print(partition_left)
 		if partition_right.shape[0] != 0:
 			node.right = self.Decision_Tree(partition_right)
-			print(partition_right)
+			#print(partition_right)
 		
 		return node
 	
@@ -167,43 +175,60 @@ class DT_Classifier:
 		self.predicted = []
 		for index, row in self.test.iloc[:,:-1].iterrows():
 			self.predicted.append(self.predict(row))
+			print(index)
 		self.comparison = pd.DataFrame({'predicted' : self.predicted, 'actual' : self.test.iloc[:,-1]})
 		
 		self.comparison['res'] = self.comparison.apply(lambda x: 1 if x['predicted']==x['actual'] else 0, axis=1)
-		print(self.comparison['res'].value_counts(normalize=True)[1])
+		self.accuracy = self.comparison['res'].value_counts(normalize=True)[1]
 
 	def calc_precision_recall(self):
-		print(self.test.iloc[:,-1], self.predicted)
+		#print(self.test.iloc[:,-1], self.predicted)
 		self.cm = confusion_matrix(self.test.iloc[:,-1], self.predicted, self.test.iloc[:,-1].unique())
 		self.recall_classwise = np.diag(self.cm) / (np.sum(self.cm, axis = 1) +1.e-8)
 		self.precision_classwise = np.diag(self.cm) / (np.sum(self.cm, axis = 0) +1.e-8)
 		self.recall = np.mean(self.recall_classwise)
 		self.precision = np.mean(self.precision_classwise)
 		self.f1 = 2.*self.precision*self.recall/(self.precision+self.recall)
-		pprint(self.cm)
-		print(self.precision, self.recall, self.f1)
+		self.stat = dict()
+		self.stat['accuracy'] = self.accuracy
+		self.stat['precision'] = self.precision
+		self.stat['recall'] = self.recall
+		self.stat['f1'] = self.f1
+		#pprint(self.cm)
+		#print(self.precision, self.recall, self.f1)
+	def print_stat(self):
+		print('b = ', list(self.stat.values()))
 
-classifier = DT_Classifier()
-
-classifier.read_dataset()
-
-n = classifier.Decision_Tree_Initiation()
-
-n.pprint()
+if __name__ == "__main__":
+	my_parser = argparse.ArgumentParser(description='')
+	my_parser.add_argument('-p', help='the path to list')
+	args = my_parser.parse_args()
+	
 
 
-def f(n):
-	if n is None:
-		return
-	if n.leaf == False:
-		print(n.index, n.left_class)
-		print('l')
-		f(n.left)
-		print('r')
-		f(n.right)
-	else:
-		pass#print(n.class_)
-f(n)
+	classifier = DT_Classifier()
 
-classifier.calc_accuracy()
-classifier.calc_precision_recall()
+	classifier.read_dataset(vars(args)['p'])
+
+	n = classifier.Decision_Tree_Initiation()
+
+	#n.pprint()
+
+
+	def f(n):
+		if n is None:
+			return
+		if n.leaf == False:
+			print(n.index, n.left_class)
+			print('l')
+			f(n.left)
+			print('r')
+			f(n.right)
+		else:
+			pass#print(n.class_)
+	#f(n)
+
+	classifier.calc_accuracy()
+	classifier.calc_precision_recall()
+	classifier.print_stat()
+	print('c = \'', vars(args)['p'] , '\'')

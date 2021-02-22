@@ -1,0 +1,11 @@
+total, training, testing
+tic-tac-toe.data , 957 , 765 , 192
+wine.data , 177 , 141 , 36
+heart.data , 269 , 215 , 54
+iris.data , 149 , 119 , 30
+kr-vs-kp.data , 3195 , 2556 , 639
+balance-scale.data , 624 , 499 , 125
+car.data , 1727 , 1381 , 346
+nursery.data , 12959 , 10367 , 2592
+agaricus-lepiota.data , 8123 , 6498 , 1625
+krkopt.data , 28055 , 22444 , 5611
