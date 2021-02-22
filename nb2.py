@@ -10,8 +10,12 @@ class NB_Classifier:
 	def __init__(self):
 		pass
 	
-	def read_dataset(self, data_path='nursery.data'):
-		self.dat = pd.read_csv(data_path, header=None).astype(str).sample(frac=1).reset_index(drop=True)
+	def read_dataset(self, data_path='heart.dat'):
+		self.dat = pd.read_csv(data_path, header=None, sep=' ').astype(str).sample(frac=1).reset_index(drop=True)
+		for i in self.dat.columns:
+			if len(self.dat[i].unique()) >= 20:
+				self.dat[i] = pd.to_numeric(self.dat[i])
+			
 		self.train = self.dat.head(int(self.dat.shape[0]*.7))
 		self.test = self.dat.tail(self.dat.shape[0]-int(self.dat.shape[0]*.7))
 	
@@ -27,8 +31,12 @@ class NB_Classifier:
 				self.summary[a_class] = []
 			
 			for column in range(separated_dataset.shape[1]-1):
-				self.summary[a_class].append(separated_dataset[column].value_counts(normalize=True).to_dict())
-				
+				if len(self.dat[column].unique())<20:
+					self.summary[a_class].append(separated_dataset[column].value_counts(normalize=True).to_dict())
+				else:
+					mean = separated_dataset[column].mean()
+					std = separated_dataset[column].std()
+					self.summary[a_class].append({'mean': mean, 'std': std})
 	
 	def gaussian_liklihood(self, x, mean, std):
 		return math.e**(-(x-mean)**2./(2.*std**2.))/(std*math.sqrt(2.*math.pi))
@@ -38,7 +46,9 @@ class NB_Classifier:
 		for a_class in self.classes:
 			class_probabilities[a_class] = 1.
 			for i, value in enumerate(data_tuple):
-				if value in self.summary[a_class][i]:
+				if len(self.dat[i].unique())>=20:
+					class_probabilities[a_class]*=self.gaussian_liklihood(float(value),self.summary[a_class][i]['mean'], self.summary[a_class][i]['std'])
+				elif value in self.summary[a_class][i]:
 					class_probabilities[a_class]*=self.summary[a_class][i][value]
 				else:
 					class_probabilities[a_class]*=1e-8
