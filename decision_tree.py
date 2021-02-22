@@ -175,7 +175,7 @@ class DT_Classifier:
 		self.predicted = []
 		for index, row in self.test.iloc[:,:-1].iterrows():
 			self.predicted.append(self.predict(row))
-			print(index)
+			
 		self.comparison = pd.DataFrame({'predicted' : self.predicted, 'actual' : self.test.iloc[:,-1]})
 		
 		self.comparison['res'] = self.comparison.apply(lambda x: 1 if x['predicted']==x['actual'] else 0, axis=1)
@@ -197,7 +197,7 @@ class DT_Classifier:
 		#pprint(self.cm)
 		#print(self.precision, self.recall, self.f1)
 	def print_stat(self):
-		print('b = ', list(self.stat.values()))
+		print(self.stat)
 
 if __name__ == "__main__":
 	my_parser = argparse.ArgumentParser(description='')
